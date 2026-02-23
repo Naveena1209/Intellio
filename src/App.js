@@ -44,9 +44,7 @@ export default function App() {
 
   const loadHistory = useCallback(async (uid) => {
     const { data, error } = await supabase
-      .from("chats")
-      .select("*")
-      .eq("uid", uid)
+      .from("chats").select("*").eq("uid", uid)
       .order("created_at", { ascending: false });
     if (error) console.error("Load history error:", error);
     else setChatHistory(data || []);
@@ -79,9 +77,7 @@ export default function App() {
     const { data, error } = await supabase.from("chats").insert({
       uid: user.id,
       title: msgs[0]?.text?.slice(0, 40) || "New Chat",
-      date: getDate(),
-      messages: msgs,
-      created_at: Date.now(),
+      date: getDate(), messages: msgs, created_at: Date.now(),
     }).select();
     if (error) console.error("Save error:", error);
     else if (data) setChatHistory((prev) => [data[0], ...prev]);
@@ -118,22 +114,16 @@ export default function App() {
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "intellio-chat.txt";
-    a.click();
+    a.href = url; a.download = "intellio-chat.txt"; a.click();
     showToast("Chat exported!");
+    setSidebarOpen(false);
   };
 
   const toggleVoice = () => {
     if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
-      showToast("Voice not supported");
-      return;
+      showToast("Voice not supported"); return;
     }
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
+    if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SR();
     recognition.lang = "en-US";
@@ -142,8 +132,7 @@ export default function App() {
     recognition.onerror = () => setListening(false);
     recognition.onend = () => setListening(false);
     recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
+    recognition.start(); setListening(true);
   };
 
   const handleInput = (e) => {
@@ -167,8 +156,7 @@ export default function App() {
       setGeneratingImage(true);
       try {
         const response = await fetch(`${BACKEND_URL}/generate-image`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt: msg }),
         });
         const data = await response.json();
@@ -185,12 +173,10 @@ export default function App() {
     } else {
       try {
         const history = messages.map((m) => ({
-          role: m.role === "user" ? "user" : "assistant",
-          content: m.text,
+          role: m.role === "user" ? "user" : "assistant", content: m.text,
         }));
         const response = await fetch(`${BACKEND_URL}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages: [...history, { role: "user", content: msg }] }),
         });
         const data = await response.json();
@@ -198,7 +184,6 @@ export default function App() {
         const botText =
           data.choices?.[0]?.message?.content ||
           data.choices?.[0]?.text ||
-          data.response ||
           "Sorry, I couldn't respond.";
         setMessages((prev) => [...prev, { role: "bot", text: botText, time: getTime() }]);
       } catch (error) {
@@ -218,7 +203,7 @@ export default function App() {
   };
 
   if (!authReady) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "Outfit, sans-serif", color: "#999", fontSize: "15px" }}>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Outfit,sans-serif", color:"#999", fontSize:"15px" }}>
       Loading...
     </div>
   );
@@ -230,13 +215,18 @@ export default function App() {
 
       <div className={`overlay ${sidebarOpen ? "show" : ""}`} onClick={() => setSidebarOpen(false)} />
 
-      {/* ── SIDEBAR ── */}
+      {/* ── SIDEBAR ── full menu with all actions */}
       <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
-          <span className="sidebar-title">💬 Chat History</span>
+          <span className="sidebar-title">💬 Intellio AI</span>
           <button className="icon-btn" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
+
+        {/* User email */}
+        <div className="sidebar-user">👤 {user.email}</div>
+
         <button className="new-chat-btn" onClick={clearChat}>+ New Chat</button>
+
         <div className="sidebar-body">
           {chatHistory.length === 0 ? (
             <div className="empty-history">No saved chats yet</div>
@@ -247,24 +237,27 @@ export default function App() {
                 <div className="history-item-date">{entry.date}</div>
                 <button
                   onClick={(e) => deleteHistory(entry.id, e)}
-                  style={{ marginTop: "6px", fontSize: "11px", color: "#f87171", background: "none", border: "none", cursor: "pointer", fontFamily: "Outfit, sans-serif" }}
-                >
-                  🗑 Delete
-                </button>
+                  style={{ marginTop:"6px", fontSize:"11px", color:"#f87171", background:"none", border:"none", cursor:"pointer", fontFamily:"Outfit,sans-serif" }}
+                >🗑 Delete</button>
               </div>
             ))
           )}
         </div>
-        {/* Logout always visible in sidebar */}
-        <button className="mobile-logout" onClick={handleSignOut}>
-          🚪 Sign Out
-        </button>
+
+        {/* All actions at bottom of sidebar */}
+        <div className="sidebar-actions">
+          <button className="sidebar-btn" onClick={exportChat}>⬇ Export Chat</button>
+          <button className="sidebar-btn" onClick={() => { setDarkMode(!darkMode); setSidebarOpen(false); }}>
+            {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+          </button>
+          <button className="sidebar-btn danger" onClick={handleSignOut}>🚪 Sign Out</button>
+        </div>
       </div>
 
-      {/* ── HEADER ── */}
+      {/* ── HEADER — only 3 buttons on mobile ── */}
       <div className="header">
         <div className="header-left">
-          <button className="icon-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+          <button className="icon-btn" onClick={() => setSidebarOpen(true)} title="Menu">☰</button>
           <div className="logo-icon">🤖</div>
           <div className="header-info">
             <div className="header-title">Intellio AI</div>
@@ -272,14 +265,15 @@ export default function App() {
           </div>
         </div>
         <div className="header-actions">
-          {/* Desktop only — hidden on mobile via CSS */}
+          {/* Desktop only */}
           <span className="header-email">{user.email}</span>
           <button className="icon-btn desktop-only" onClick={exportChat} title="Export">⬇</button>
-          {/* Always visible */}
+          {/* Visible on all screens */}
           <button className="icon-btn" onClick={clearChat} title="Clear Chat">🗑</button>
           <button className="icon-btn" onClick={() => setDarkMode(!darkMode)} title="Theme">
             {darkMode ? "☀️" : "🌙"}
           </button>
+          {/* Desktop only */}
           <button className="icon-btn desktop-only" onClick={handleSignOut} title="Sign Out">🚪</button>
           <div className="status-badge"><div className="status-dot" />Online</div>
         </div>
@@ -316,7 +310,7 @@ export default function App() {
                     <ReactMarkdown>{msg.text}</ReactMarkdown>
                   </div>
                 )}
-                <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
                   <div className="message-time">{msg.time}</div>
                   <div className="message-actions">
                     <button className="action-btn" onClick={() => copyMessage(msg.text)}>📋 Copy</button>
