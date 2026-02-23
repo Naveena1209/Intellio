@@ -36,7 +36,7 @@ export default function Auth() {
     <div className="auth-wrapper">
       <div className="auth-card">
         <div className="auth-logo">🤖</div>
-        <h1 className="auth-title">Orion AI</h1>
+        <h1 className="auth-title">Intellio AI</h1>
         <p className="auth-subtitle">{isLogin ? "Welcome back!" : "Create your account"}</p>
 
         {error && <div className="auth-error">{error}</div>}
