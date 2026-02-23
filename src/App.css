@@ -19,7 +19,7 @@ body.dark { background: #0a0a0f; }
   flex-direction: column;
   background: #fff;
   box-shadow: 0 0 60px rgba(0,0,0,0.08);
-  overflow: hidden;
+  overflow: hidden;   /* ✅ add this */
 }
 
 .app.dark { background: #111118; box-shadow: 0 0 60px rgba(0,0,0,0.4); }
@@ -524,4 +524,23 @@ body.dark { background: #0a0a0f; }
   .message-content { max-width: 90%; }
   .empty-title { font-size: 15px; }
   .suggestion-chip { font-size: 11px; padding: 5px 10px; }
+}
+@media (max-width: 768px) {
+  /* Fix iOS scroll issue */
+  html, body {
+    overflow: hidden;
+    height: 100%;
+    position: fixed;
+    width: 100%;
+  }
+
+  .app {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    overflow: hidden;
+  }
 }
