@@ -271,7 +271,7 @@ export default function App() {
           {/* Visible on all screens */}
           <button className="icon-btn" onClick={clearChat} title="Clear Chat">🗑</button>
           <button className="icon-btn" onClick={() => setDarkMode(!darkMode)} title="Theme">
-            {darkMode ? "☀️" : "🌙"}
+            {darkMode ? "☀️" : "⚡"}
           </button>
           {/* Desktop only */}
           <button className="icon-btn desktop-only" onClick={handleSignOut} title="Sign Out">↠</button>
