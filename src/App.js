@@ -248,9 +248,9 @@ export default function App() {
         <div className="sidebar-actions">
           <button className="sidebar-btn" onClick={exportChat}>⬇ Export Chat</button>
           <button className="sidebar-btn" onClick={() => { setDarkMode(!darkMode); setSidebarOpen(false); }}>
-            {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+            {darkMode ? "☀️ Light Mode" : "⚡ Dark Mode"}
           </button>
-          <button className="sidebar-btn danger" onClick={handleSignOut}>🚪 Sign Out</button>
+          <button className="icon-btn desktop-only" onClick={handleSignOut} title="Sign Out">↠ Sign Out</button>
         </div>
       </div>
 
@@ -274,7 +274,7 @@ export default function App() {
             {darkMode ? "☀️" : "🌙"}
           </button>
           {/* Desktop only */}
-          <button className="icon-btn desktop-only" onClick={handleSignOut} title="Sign Out">🚪</button>
+          <button className="icon-btn desktop-only" onClick={handleSignOut} title="Sign Out">↠</button>
           <div className="status-badge"><div className="status-dot" />Online</div>
         </div>
       </div>
