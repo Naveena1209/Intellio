@@ -108,9 +108,7 @@ export default function App() {
   };
 
   const clearChat = async () => {
-    if (messages.length > 0) {
-      await saveChat(messages);
-    }
+    if (messages.length > 0) await saveChat(messages);
     setMessages([]);
     showToast("Chat cleared & saved!");
   };
@@ -187,6 +185,7 @@ export default function App() {
           body: JSON.stringify({ prompt: msg }),
         });
         const data = await response.json();
+        console.log("Image response:", data);
         if (data.image) {
           setMessages((prev) => [
             ...prev,
@@ -196,6 +195,7 @@ export default function App() {
           throw new Error(data.error || "No image returned");
         }
       } catch (error) {
+        console.error("Image error:", error);
         setMessages((prev) => [
           ...prev,
           { role: "bot", text: "Could not generate image: " + error.message, time: getTime() },
@@ -208,6 +208,7 @@ export default function App() {
           role: m.role === "user" ? "user" : "assistant",
           content: m.text,
         }));
+
         const response = await fetch(`${BACKEND_URL}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -215,13 +216,28 @@ export default function App() {
             messages: [...history, { role: "user", content: msg }],
           }),
         });
+
         const data = await response.json();
-        const botText = data.choices?.[0]?.message?.content || "Sorry, I couldn't respond.";
+        console.log("Chat response:", JSON.stringify(data)); // 👈 debug log
+
+        // Handle both OpenRouter and error responses
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        const botText =
+          data.choices?.[0]?.message?.content ||
+          data.choices?.[0]?.text ||
+          data.response ||
+          data.message ||
+          "Sorry, I couldn't respond.";
+
         setMessages((prev) => [
           ...prev,
           { role: "bot", text: botText, time: getTime() },
         ]);
       } catch (error) {
+        console.error("Chat error:", error);
         setMessages((prev) => [
           ...prev,
           { role: "bot", text: "Error: " + error.message, time: getTime() },
@@ -239,6 +255,11 @@ export default function App() {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    showToast("Signed out!");
+  };
+
   if (!authReady) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "Outfit, sans-serif", color: "#999", fontSize: "15px" }}>
       Loading...
@@ -252,6 +273,7 @@ export default function App() {
 
       <div className={`overlay ${sidebarOpen ? "show" : ""}`} onClick={() => setSidebarOpen(false)} />
 
+      {/* SIDEBAR */}
       <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <span className="sidebar-title">💬 Chat History</span>
@@ -276,8 +298,13 @@ export default function App() {
             ))
           )}
         </div>
+        {/* ✅ Logout button inside sidebar — always visible on mobile */}
+        <button className="mobile-logout" onClick={handleSignOut}>
+          🚪 Sign Out ({user.email})
+        </button>
       </div>
 
+      {/* HEADER */}
       <div className="header">
         <div className="header-left">
           <button className="icon-btn" onClick={() => setSidebarOpen(true)} title="Chat History">☰</button>
@@ -288,13 +315,14 @@ export default function App() {
           </div>
         </div>
         <div className="header-actions">
-          <span style={{ fontSize: "11px", color: "#aaa", fontFamily: "Outfit, sans-serif" }}>{user.email}</span>
+          {/* Hide email on mobile */}
+          <span className="header-email">{user.email}</span>
           <button className="icon-btn" onClick={exportPDF} title="Export Chat">⬇</button>
           <button className="icon-btn" onClick={clearChat} title="Clear Chat">🗑</button>
           <button className="icon-btn" onClick={() => setDarkMode(!darkMode)} title="Toggle Theme">
             {darkMode ? "☀️" : "🌙"}
           </button>
-          <button className="icon-btn" onClick={() => supabase.auth.signOut()} title="Sign Out">🚪</button>
+          <button className="icon-btn" onClick={handleSignOut} title="Sign Out">🚪</button>
           <div className="status-badge">
             <div className="status-dot" />
             Online
@@ -302,6 +330,7 @@ export default function App() {
         </div>
       </div>
 
+      {/* CHAT AREA */}
       <div className="chat-area">
         {messages.length === 0 ? (
           <div className="empty-state">
@@ -374,6 +403,7 @@ export default function App() {
         <div ref={bottomRef} />
       </div>
 
+      {/* INPUT */}
       <div className="input-area">
         <div className="input-container">
           <button
