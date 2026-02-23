@@ -48,11 +48,8 @@ export default function App() {
       .select("*")
       .eq("uid", uid)
       .order("created_at", { ascending: false });
-    if (error) {
-      console.error("Load history error:", error);
-    } else {
-      setChatHistory(data || []);
-    }
+    if (error) console.error("Load history error:", error);
+    else setChatHistory(data || []);
   }, []);
 
   useEffect(() => {
@@ -61,12 +58,10 @@ export default function App() {
       setAuthReady(true);
       if (session?.user) loadHistory(session.user.id);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) loadHistory(session.user.id);
     });
-
     return () => subscription.unsubscribe();
   }, [loadHistory]);
 
@@ -88,11 +83,8 @@ export default function App() {
       messages: msgs,
       created_at: Date.now(),
     }).select();
-    if (error) {
-      console.error("Save error:", error);
-    } else if (data) {
-      setChatHistory((prev) => [data[0], ...prev]);
-    }
+    if (error) console.error("Save error:", error);
+    else if (data) setChatHistory((prev) => [data[0], ...prev]);
   }, [user]);
 
   const deleteHistory = async (id, e) => {
@@ -110,6 +102,7 @@ export default function App() {
   const clearChat = async () => {
     if (messages.length > 0) await saveChat(messages);
     setMessages([]);
+    setSidebarOpen(false);
     showToast("Chat cleared & saved!");
   };
 
@@ -118,7 +111,7 @@ export default function App() {
     showToast("Copied!");
   };
 
-  const exportPDF = () => {
+  const exportChat = () => {
     const content = messages
       .map((m) => `${m.role === "user" ? "You" : "Intellio AI"} [${m.time}]:\n${m.text || "[Image]"}\n`)
       .join("\n---\n\n");
@@ -133,7 +126,7 @@ export default function App() {
 
   const toggleVoice = () => {
     if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
-      showToast("Voice not supported in this browser");
+      showToast("Voice not supported");
       return;
     }
     if (listening) {
@@ -145,11 +138,7 @@ export default function App() {
     const recognition = new SR();
     recognition.lang = "en-US";
     recognition.interimResults = false;
-    recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setInput(transcript);
-      setListening(false);
-    };
+    recognition.onresult = (e) => { setInput(e.results[0][0].transcript); setListening(false); };
     recognition.onerror = () => setListening(false);
     recognition.onend = () => setListening(false);
     recognitionRef.current = recognition;
@@ -172,9 +161,7 @@ export default function App() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setLoading(true);
 
-    const isImageRequest = IMAGE_KEYWORDS.some((kw) =>
-      msg.toLowerCase().includes(kw)
-    );
+    const isImageRequest = IMAGE_KEYWORDS.some((kw) => msg.toLowerCase().includes(kw));
 
     if (isImageRequest) {
       setGeneratingImage(true);
@@ -185,21 +172,14 @@ export default function App() {
           body: JSON.stringify({ prompt: msg }),
         });
         const data = await response.json();
-        console.log("Image response:", data);
         if (data.image) {
-          setMessages((prev) => [
-            ...prev,
-            { role: "bot", type: "image", image: data.image, text: `Here's your image for: "${msg}"`, time: getTime() },
-          ]);
-        } else {
-          throw new Error(data.error || "No image returned");
-        }
+          setMessages((prev) => [...prev, {
+            role: "bot", type: "image", image: data.image,
+            text: `Here's your image for: "${msg}"`, time: getTime(),
+          }]);
+        } else throw new Error(data.error || "No image returned");
       } catch (error) {
-        console.error("Image error:", error);
-        setMessages((prev) => [
-          ...prev,
-          { role: "bot", text: "Could not generate image: " + error.message, time: getTime() },
-        ]);
+        setMessages((prev) => [...prev, { role: "bot", text: "Could not generate image: " + error.message, time: getTime() }]);
       }
       setGeneratingImage(false);
     } else {
@@ -208,51 +188,28 @@ export default function App() {
           role: m.role === "user" ? "user" : "assistant",
           content: m.text,
         }));
-
         const response = await fetch(`${BACKEND_URL}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [...history, { role: "user", content: msg }],
-          }),
+          body: JSON.stringify({ messages: [...history, { role: "user", content: msg }] }),
         });
-
         const data = await response.json();
-        console.log("Chat response:", JSON.stringify(data)); // 👈 debug log
-
-        // Handle both OpenRouter and error responses
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
+        if (data.error) throw new Error(data.error);
         const botText =
           data.choices?.[0]?.message?.content ||
           data.choices?.[0]?.text ||
           data.response ||
-          data.message ||
           "Sorry, I couldn't respond.";
-
-        setMessages((prev) => [
-          ...prev,
-          { role: "bot", text: botText, time: getTime() },
-        ]);
+        setMessages((prev) => [...prev, { role: "bot", text: botText, time: getTime() }]);
       } catch (error) {
-        console.error("Chat error:", error);
-        setMessages((prev) => [
-          ...prev,
-          { role: "bot", text: "Error: " + error.message, time: getTime() },
-        ]);
+        setMessages((prev) => [...prev, { role: "bot", text: "Error: " + error.message, time: getTime() }]);
       }
     }
-
     setLoading(false);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
   const handleSignOut = async () => {
@@ -273,7 +230,7 @@ export default function App() {
 
       <div className={`overlay ${sidebarOpen ? "show" : ""}`} onClick={() => setSidebarOpen(false)} />
 
-      {/* SIDEBAR */}
+      {/* ── SIDEBAR ── */}
       <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <span className="sidebar-title">💬 Chat History</span>
@@ -298,52 +255,46 @@ export default function App() {
             ))
           )}
         </div>
-        {/* ✅ Logout button inside sidebar — always visible on mobile */}
+        {/* Logout always visible in sidebar */}
         <button className="mobile-logout" onClick={handleSignOut}>
-          🚪 Sign Out ({user.email})
+          🚪 Sign Out
         </button>
       </div>
 
-      {/* HEADER */}
+      {/* ── HEADER ── */}
       <div className="header">
         <div className="header-left">
-          <button className="icon-btn" onClick={() => setSidebarOpen(true)} title="Chat History">☰</button>
+          <button className="icon-btn" onClick={() => setSidebarOpen(true)}>☰</button>
           <div className="logo-icon">🤖</div>
-          <div>
+          <div className="header-info">
             <div className="header-title">Intellio AI</div>
             <div className="header-subtitle">Chat · Image Generation</div>
           </div>
         </div>
         <div className="header-actions">
-          {/* Hide email on mobile */}
+          {/* Desktop only — hidden on mobile via CSS */}
           <span className="header-email">{user.email}</span>
-          <button className="icon-btn" onClick={exportPDF} title="Export Chat">⬇</button>
+          <button className="icon-btn desktop-only" onClick={exportChat} title="Export">⬇</button>
+          {/* Always visible */}
           <button className="icon-btn" onClick={clearChat} title="Clear Chat">🗑</button>
-          <button className="icon-btn" onClick={() => setDarkMode(!darkMode)} title="Toggle Theme">
+          <button className="icon-btn" onClick={() => setDarkMode(!darkMode)} title="Theme">
             {darkMode ? "☀️" : "🌙"}
           </button>
-          <button className="icon-btn" onClick={handleSignOut} title="Sign Out">🚪</button>
-          <div className="status-badge">
-            <div className="status-dot" />
-            Online
-          </div>
+          <button className="icon-btn desktop-only" onClick={handleSignOut} title="Sign Out">🚪</button>
+          <div className="status-badge"><div className="status-dot" />Online</div>
         </div>
       </div>
 
-      {/* CHAT AREA */}
+      {/* ── CHAT AREA ── */}
       <div className="chat-area">
         {messages.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">🤖</div>
             <div className="empty-title">How can I help you?</div>
-            <div className="empty-subtitle">
-              Chat with AI or generate images — just describe what you want.
-            </div>
+            <div className="empty-subtitle">Chat with AI or generate images — just describe what you want.</div>
             <div className="suggestions">
               {suggestions.map((s) => (
-                <button key={s} className="suggestion-chip" onClick={() => sendMessage(s)}>
-                  {s}
-                </button>
+                <button key={s} className="suggestion-chip" onClick={() => sendMessage(s)}>{s}</button>
               ))}
             </div>
           </div>
@@ -358,9 +309,7 @@ export default function App() {
                   <div className="message-bubble image-bubble">
                     <div className="image-caption">{msg.text}</div>
                     <img src={msg.image} alt="Generated" className="generated-image" />
-                    <a href={msg.image} download="intellio-image.png" className="image-download">
-                      ↓ Download
-                    </a>
+                    <a href={msg.image} download="intellio-image.png" className="image-download">↓ Download</a>
                   </div>
                 ) : (
                   <div className={`message-bubble ${msg.role === "user" ? "user" : "ai"}`}>
@@ -383,9 +332,7 @@ export default function App() {
             <div className="avatar ai">🤖</div>
             <div className="image-progress">
               <div className="progress-label">✨ Generating your image...</div>
-              <div className="progress-bar-track">
-                <div className="progress-bar-fill" />
-              </div>
+              <div className="progress-bar-track"><div className="progress-bar-fill" /></div>
             </div>
           </div>
         )}
@@ -394,23 +341,17 @@ export default function App() {
           <div className="message-row">
             <div className="avatar ai">🤖</div>
             <div className="typing-bubble">
-              <div className="typing-dot" />
-              <div className="typing-dot" />
-              <div className="typing-dot" />
+              <div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" />
             </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* INPUT */}
+      {/* ── INPUT ── */}
       <div className="input-area">
         <div className="input-container">
-          <button
-            className={`voice-btn ${listening ? "listening" : ""}`}
-            onClick={toggleVoice}
-            title={listening ? "Stop listening" : "Voice input"}
-          >
+          <button className={`voice-btn ${listening ? "listening" : ""}`} onClick={toggleVoice}>
             {listening ? "🔴" : "🎤"}
           </button>
           <textarea
@@ -419,16 +360,14 @@ export default function App() {
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder={listening ? "Listening..." : "Chat or say 'generate image of...'"}
+            placeholder={listening ? "Listening..." : "Ask anything or say 'generate image of...'"}
             rows={1}
           />
-          <button className="send-btn" onClick={() => sendMessage()} disabled={loading || !input.trim()}>
-            ↑
-          </button>
+          <button className="send-btn" onClick={() => sendMessage()} disabled={loading || !input.trim()}>↑</button>
         </div>
         <div className="input-footer">
           <span className="input-hint">Enter to send · Shift+Enter for new line</span>
-          <span className="model-tag">Llama · SDXL</span>
+          <span className="model-tag">GPT · SDXL</span>
         </div>
       </div>
 
