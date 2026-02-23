@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/Intellio/static/css/main.4b44ed24.css",
+    "main.js": "/Intellio/static/js/main.c5c262a6.js",
+    "static/js/453.c5cf3dcf.chunk.js": "/Intellio/static/js/453.c5cf3dcf.chunk.js",
+    "index.html": "/Intellio/index.html",
+    "main.4b44ed24.css.map": "/Intellio/static/css/main.4b44ed24.css.map",
+    "main.c5c262a6.js.map": "/Intellio/static/js/main.c5c262a6.js.map",
+    "453.c5cf3dcf.chunk.js.map": "/Intellio/static/js/453.c5cf3dcf.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.4b44ed24.css",
+    "static/js/main.c5c262a6.js"
+  ]
+}
