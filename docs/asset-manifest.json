@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/Intellio/static/css/main.a4f898f5.css",
+    "main.css": "/Intellio/static/css/main.6a974e77.css",
     "main.js": "/Intellio/static/js/main.1d3338b1.js",
     "static/js/453.c5cf3dcf.chunk.js": "/Intellio/static/js/453.c5cf3dcf.chunk.js",
     "index.html": "/Intellio/index.html",
-    "main.a4f898f5.css.map": "/Intellio/static/css/main.a4f898f5.css.map",
+    "main.6a974e77.css.map": "/Intellio/static/css/main.6a974e77.css.map",
     "main.1d3338b1.js.map": "/Intellio/static/js/main.1d3338b1.js.map",
     "453.c5cf3dcf.chunk.js.map": "/Intellio/static/js/453.c5cf3dcf.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.a4f898f5.css",
+    "static/css/main.6a974e77.css",
     "static/js/main.1d3338b1.js"
   ]
 }

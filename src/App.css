@@ -39,6 +39,9 @@ body.dark { background: #0a0a0f; }
   background: #fff;
   flex-shrink: 0;
   gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
 .app.dark .header { background: #111118; border-bottom-color: #1e1e2e; }
