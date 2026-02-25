@@ -17,16 +17,23 @@ export default function Auth() {
     setMessage("");
 
     try {
+      // ✅ Debug — check what URL supabase is using
+      console.log("Supabase URL:", supabase.supabaseUrl);
+
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        console.log("Login response:", data, error);
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        console.log("Signup response:", data, error);
         if (error) throw error;
         setMessage("Check your email to confirm your account!");
       }
     } catch (err) {
-      setError(err.message);
+      console.error("Auth error:", err);
+      // Show exact error on screen for mobile debugging
+      setError(err.message + " | " + (err.status || "") + " | Check supabase URL/Key");
     }
 
     setLoading(false);
@@ -73,6 +80,11 @@ export default function Auth() {
           <span onClick={() => { setIsLogin(!isLogin); setError(""); setMessage(""); }}>
             {isLogin ? " Sign Up" : " Sign In"}
           </span>
+        </p>
+
+        {/* Debug info — remove after fixing */}
+        <p style={{ fontSize:"10px", color:"#ccc", textAlign:"center", marginTop:"8px", wordBreak:"break-all" }}>
+          {window.location.href}
         </p>
       </div>
     </div>
