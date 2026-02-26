@@ -42,7 +42,7 @@ export default function Auth() {
   return (
     <div className="auth-wrapper">
       <div className="auth-card">
-        <div className="auth-logo">🤖</div>
+        <div className="auth-logo">✦</div>
         <h1 className="auth-title">Intellio AI</h1>
         <p className="auth-subtitle">{isLogin ? "Welcome back!" : "Create your account"}</p>
 
@@ -83,9 +83,9 @@ export default function Auth() {
         </p>
 
         {/* Debug info — remove after fixing */}
-        <p style={{ fontSize:"10px", color:"#ccc", textAlign:"center", marginTop:"8px", wordBreak:"break-all" }}>
+        {/* <p style={{ fontSize:"10px", color:"#ccc", textAlign:"center", marginTop:"8px", wordBreak:"break-all" }}>
           {window.location.href}
-        </p>
+        </p> */}
       </div>
     </div>
   );

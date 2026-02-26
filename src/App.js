@@ -362,7 +362,7 @@ export default function App() {
       <div className="header">
         <div className="header-left">
           <button className="icon-btn" onClick={() => setSidebarOpen(true)}>☰</button>
-          <div className="logo-icon">🤖</div>
+          <div >✦</div>
           <div className="header-info">
             {pdfMode ? (
               <>
@@ -405,7 +405,7 @@ export default function App() {
       <div className="chat-area">
         {messages.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🤖</div>
+            <div >✦</div>
             <div className="empty-title">How can I help you?</div>
             <div className="empty-subtitle">Chat with AI, generate images, or upload a PDF to ask questions!</div>
             <div className="suggestions">
@@ -422,7 +422,7 @@ export default function App() {
           messages.map((msg, i) => (
             <div key={i} className={`message-row ${msg.role}`}>
               <div className={`avatar ${msg.role === "user" ? "user" : "ai"}`}>
-                {msg.role === "user" ? "👤" : "🤖"}
+                {msg.role === "user" ? "👤" : "✦"}
               </div>
               <div className="message-content">
                 {msg.type === "image" ? (
@@ -460,7 +460,7 @@ export default function App() {
 
         {generatingImage && (
           <div className="message-row">
-            <div className="avatar ai">🤖</div>
+            <div className="avatar ai">✦</div>
             <div className="image-progress">
               <div className="progress-label">✨ Generating your image...</div>
               <div className="progress-bar-track"><div className="progress-bar-fill" /></div>
@@ -470,7 +470,7 @@ export default function App() {
 
         {uploadingPdf && (
           <div className="message-row">
-            <div className="avatar ai">🤖</div>
+            <div className="avatar ai">✦</div>
             <div className="image-progress">
               <div className="progress-label">📄 Processing PDF...</div>
               <div className="progress-bar-track"><div className="progress-bar-fill" /></div>
@@ -480,7 +480,7 @@ export default function App() {
 
         {loading && !generatingImage && !uploadingPdf && (
           <div className="message-row">
-            <div className="avatar ai">🤖</div>
+            <div className="avatar ai">✦</div>
             <div className="typing-bubble">
               <div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" />
             </div>
@@ -506,7 +506,7 @@ export default function App() {
             title="Upload PDF"
             disabled={uploadingPdf}
           >
-            📄
+            +
           </button>
 
           <button className={`voice-btn ${listening ? "listening" : ""}`} onClick={toggleVoice}>
