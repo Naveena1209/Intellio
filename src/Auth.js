@@ -33,7 +33,7 @@ export default function Auth() {
     } catch (err) {
       console.error("Auth error:", err);
       // Show exact error on screen for mobile debugging
-      setError(err.message + " | " + (err.status || "") + " | Check supabase URL/Key");
+      setError(err.message);
     }
 
     setLoading(false);
