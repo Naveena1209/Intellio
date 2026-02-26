@@ -38,9 +38,16 @@ export default function App() {
   const [listening, setListening] = useState(false);
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+
+  // ── PDF states ──
+  const [pdfFile, setPdfFile] = useState(null);       // uploaded PDF file object
+  const [pdfMode, setPdfMode] = useState(false);       // true = chatting with PDF
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const loadHistory = useCallback(async (uid) => {
     const { data, error } = await supabase
@@ -141,6 +148,51 @@ export default function App() {
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
   };
 
+  // ── Upload PDF to backend ──
+  const handlePdfUpload = async (file) => {
+    if (!file || file.type !== "application/pdf") {
+      showToast("Please select a PDF file"); return;
+    }
+    setUploadingPdf(true);
+    showToast("Uploading PDF...");
+
+    try {
+      const formData = new FormData();
+      formData.append("pdf", file);
+      formData.append("uid", user.id);
+
+      const response = await fetch(`${BACKEND_URL}/upload-pdf`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPdfFile(file);
+        setPdfMode(true);
+        setMessages([{
+          role: "bot",
+          text: `📄 PDF **"${file.name}"** uploaded successfully! (${data.chunks} sections processed)\n\nAsk me anything about this document!`,
+          time: getTime(),
+        }]);
+        showToast("PDF ready! Ask questions now");
+      } else {
+        throw new Error(data.error || "Upload failed");
+      }
+    } catch (error) {
+      showToast("PDF upload failed: " + error.message);
+    }
+    setUploadingPdf(false);
+  };
+
+  // ── Exit PDF mode ──
+  const exitPdfMode = () => {
+    setPdfMode(false);
+    setPdfFile(null);
+    setMessages([]);
+    showToast("Exited PDF mode");
+  };
+
   const sendMessage = async (text) => {
     const msg = text || input;
     if (!msg.trim() || loading) return;
@@ -149,6 +201,29 @@ export default function App() {
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setLoading(true);
+
+    // ── PDF mode — chat with document ──
+    if (pdfMode && pdfFile) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/chat-pdf`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: msg,
+            uid: user.id,
+            filename: pdfFile.name,
+          }),
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        const botText = data.choices?.[0]?.message?.content || "Sorry, I couldn't find an answer in the document.";
+        setMessages((prev) => [...prev, { role: "bot", text: botText, time: getTime() }]);
+      } catch (error) {
+        setMessages((prev) => [...prev, { role: "bot", text: "Error: " + error.message, time: getTime() }]);
+      }
+      setLoading(false);
+      return;
+    }
 
     const isImageRequest = IMAGE_KEYWORDS.some((kw) => msg.toLowerCase().includes(kw));
 
@@ -215,14 +290,13 @@ export default function App() {
 
       <div className={`overlay ${sidebarOpen ? "show" : ""}`} onClick={() => setSidebarOpen(false)} />
 
-      {/* ── SIDEBAR ── full menu with all actions */}
+      {/* ── SIDEBAR ── */}
       <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <span className="sidebar-title">💬 Intellio AI</span>
           <button className="icon-btn" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
 
-        {/* User email */}
         <div className="sidebar-user">👤 {user.email}</div>
 
         <button className="new-chat-btn" onClick={clearChat}>+ New Chat</button>
@@ -244,40 +318,57 @@ export default function App() {
           )}
         </div>
 
-        {/* All actions at bottom of sidebar */}
         <div className="sidebar-actions">
           <button className="sidebar-btn" onClick={exportChat}>⬇ Export Chat</button>
           <button className="sidebar-btn" onClick={() => { setDarkMode(!darkMode); setSidebarOpen(false); }}>
             {darkMode ? "☀️ Light Mode" : "⚡ Dark Mode"}
           </button>
-          <button className="icon-btn desktop-only" onClick={handleSignOut} title="Sign Out">↠ Sign Out</button>
+          <button className="sidebar-btn danger" onClick={handleSignOut}>🚪 Sign Out</button>
         </div>
       </div>
 
-      {/* ── HEADER — only 3 buttons on mobile ── */}
+      {/* ── HEADER ── */}
       <div className="header">
         <div className="header-left">
-          <button className="icon-btn" onClick={() => setSidebarOpen(true)} title="Menu">☰</button>
+          <button className="icon-btn" onClick={() => setSidebarOpen(true)}>☰</button>
           <div className="logo-icon">🤖</div>
           <div className="header-info">
-            <div className="header-title">Intellio AI</div>
-            <div className="header-subtitle">Chat · Image Generation</div>
+            {pdfMode ? (
+              <>
+                <div className="header-title">📄 PDF Mode</div>
+                <div className="header-subtitle">{pdfFile?.name}</div>
+              </>
+            ) : (
+              <>
+                <div className="header-title">Intellio AI</div>
+                <div className="header-subtitle">Chat · Image · PDF</div>
+              </>
+            )}
           </div>
         </div>
         <div className="header-actions">
-          {/* Desktop only */}
           <span className="header-email">{user.email}</span>
-          <button className="icon-btn desktop-only" onClick={exportChat} title="Export">⬇</button>
-          {/* Visible on all screens */}
-          <button className="icon-btn" onClick={clearChat} title="Clear Chat">🗑</button>
-          <button className="icon-btn" onClick={() => setDarkMode(!darkMode)} title="Theme">
-            {darkMode ? "☀️" : "⚡"}
-          </button>
-          {/* Desktop only */}
-          <button className="icon-btn desktop-only" onClick={handleSignOut} title="Sign Out">↠</button>
+          {pdfMode ? (
+            <button className="icon-btn" onClick={exitPdfMode} title="Exit PDF Mode" style={{ color: "#ef4444" }}>✕</button>
+          ) : (
+            <>
+              <button className="icon-btn" onClick={clearChat} title="Clear Chat">🗑</button>
+              <button className="icon-btn" onClick={() => setDarkMode(!darkMode)} title="Theme">
+                {darkMode ? "☀️" : "⚡"}
+              </button>
+            </>
+          )}
           <div className="status-badge"><div className="status-dot" />Online</div>
         </div>
       </div>
+
+      {/* ── PDF BANNER — shown when PDF is active ── */}
+      {pdfMode && pdfFile && (
+        <div className="pdf-banner">
+          <span>📄 Chatting with: <strong>{pdfFile.name}</strong></span>
+          <button onClick={exitPdfMode}>✕ Exit</button>
+        </div>
+      )}
 
       {/* ── CHAT AREA ── */}
       <div className="chat-area">
@@ -285,12 +376,16 @@ export default function App() {
           <div className="empty-state">
             <div className="empty-icon">🤖</div>
             <div className="empty-title">How can I help you?</div>
-            <div className="empty-subtitle">Chat with AI or generate images — just describe what you want.</div>
+            <div className="empty-subtitle">Chat with AI, generate images, or upload a PDF to ask questions!</div>
             <div className="suggestions">
               {suggestions.map((s) => (
                 <button key={s} className="suggestion-chip" onClick={() => sendMessage(s)}>{s}</button>
               ))}
             </div>
+            {/* PDF upload button in empty state */}
+            <button className="pdf-upload-chip" onClick={() => fileInputRef.current?.click()}>
+              📄 Upload PDF to chat
+            </button>
           </div>
         ) : (
           messages.map((msg, i) => (
@@ -331,7 +426,17 @@ export default function App() {
           </div>
         )}
 
-        {loading && !generatingImage && (
+        {uploadingPdf && (
+          <div className="message-row">
+            <div className="avatar ai">🤖</div>
+            <div className="image-progress">
+              <div className="progress-label">📄 Processing PDF...</div>
+              <div className="progress-bar-track"><div className="progress-bar-fill" /></div>
+            </div>
+          </div>
+        )}
+
+        {loading && !generatingImage && !uploadingPdf && (
           <div className="message-row">
             <div className="avatar ai">🤖</div>
             <div className="typing-bubble">
@@ -345,23 +450,49 @@ export default function App() {
       {/* ── INPUT ── */}
       <div className="input-area">
         <div className="input-container">
+          {/* PDF upload button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            style={{ display: "none" }}
+            onChange={(e) => handlePdfUpload(e.target.files[0])}
+          />
+          <button
+            className="voice-btn"
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload PDF"
+            disabled={uploadingPdf}
+          >
+            📄
+          </button>
+
           <button className={`voice-btn ${listening ? "listening" : ""}`} onClick={toggleVoice}>
             {listening ? "🔴" : "🎤"}
           </button>
+
           <textarea
             ref={textareaRef}
             className="input-field"
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder={listening ? "Listening..." : "Ask anything or say 'generate image of...'"}
+            placeholder={
+              pdfMode
+                ? `Ask anything about "${pdfFile?.name}"...`
+                : listening
+                ? "Listening..."
+                : "Ask anything or say 'generate image of...'"
+            }
             rows={1}
           />
           <button className="send-btn" onClick={() => sendMessage()} disabled={loading || !input.trim()}>↑</button>
         </div>
         <div className="input-footer">
-          <span className="input-hint">Enter to send · Shift+Enter for new line</span>
-          <span className="model-tag">GPT · SDXL</span>
+          <span className="input-hint">
+            {pdfMode ? "📄 PDF Mode — asking about document" : "Enter to send · Shift+Enter for new line"}
+          </span>
+          <span className="model-tag">{pdfMode ? "RAG · PDF" : "GPT · SDXL"}</span>
         </div>
       </div>
 
