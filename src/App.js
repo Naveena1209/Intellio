@@ -414,9 +414,9 @@ export default function App() {
               ))}
             </div>
             {/* PDF upload button in empty state */}
-            <button className="pdf-upload-chip" onClick={() => fileInputRef.current?.click()}>
+            {/* <button className="pdf-upload-chip" onClick={() => fileInputRef.current?.click()}>
               📄 Upload PDF to chat
-            </button>
+            </button> */}
           </div>
         ) : (
           messages.map((msg, i) => (
