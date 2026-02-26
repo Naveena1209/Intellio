@@ -13,8 +13,8 @@ const getDate = () =>
 const suggestions = [
   "Explain quantum computing",
   "Write a Python function",
+  "Search latest AI news",
   "Generate image of a sunset",
-  "Generate image of a futuristic city",
 ];
 
 const IMAGE_KEYWORDS = [
@@ -22,6 +22,12 @@ const IMAGE_KEYWORDS = [
   "show me a picture", "generate photo", "make an image",
   "create a photo", "paint", "illustrate", "generate a image",
   "create a image", "image of", "picture of", "photo of",
+];
+
+const SEARCH_KEYWORDS = [
+  "search", "latest", "current", "today", "news", "right now",
+  "what happened", "recent", "2024", "2025", "2026", "live",
+  "price of", "score of", "weather in", "who won", "trending",
 ];
 
 const BACKEND_URL = "https://naveenasenthil-intellio.hf.space";
@@ -226,6 +232,31 @@ export default function App() {
     }
 
     const isImageRequest = IMAGE_KEYWORDS.some((kw) => msg.toLowerCase().includes(kw));
+    const isSearchRequest = SEARCH_KEYWORDS.some((kw) => msg.toLowerCase().includes(kw));
+
+    if (isSearchRequest && !isImageRequest) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: msg }),
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        const botText = data.choices?.[0]?.message?.content || "Sorry, couldn't find results.";
+        setMessages((prev) => [...prev, {
+          role: "bot",
+          text: botText,
+          sources: data.sources || [],
+          time: getTime(),
+          isSearch: true,
+        }]);
+      } catch (error) {
+        setMessages((prev) => [...prev, { role: "bot", text: "Search error: " + error.message, time: getTime() }]);
+      }
+      setLoading(false);
+      return;
+    }
 
     if (isImageRequest) {
       setGeneratingImage(true);
@@ -383,9 +414,9 @@ export default function App() {
               ))}
             </div>
             {/* PDF upload button in empty state */}
-            {/* <button className="pdf-upload-chip" onClick={() => fileInputRef.current?.click()}>
+            <button className="pdf-upload-chip" onClick={() => fileInputRef.current?.click()}>
               📄 Upload PDF to chat
-            </button> */}
+            </button>
           </div>
         ) : (
           messages.map((msg, i) => (
@@ -403,6 +434,17 @@ export default function App() {
                 ) : (
                   <div className={`message-bubble ${msg.role === "user" ? "user" : "ai"}`}>
                     <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    {/* Show sources if search result */}
+                    {msg.isSearch && msg.sources?.length > 0 && (
+                      <div className="search-sources">
+                        <div className="sources-title">🔍 Sources:</div>
+                        {msg.sources.map((s, i) => (
+                          <a key={i} href={s.url} target="_blank" rel="noreferrer" className="source-link">
+                            {i + 1}. {s.title}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
