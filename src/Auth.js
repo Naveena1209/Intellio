@@ -1,6 +1,5 @@
 import { useState } from "react";
 import "./Auth.css";
-
 export default function Auth({ onAuthSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -10,7 +9,6 @@ export default function Auth({ onAuthSuccess }) {
   const handleSubmit = () => {
     setLoading(true);
     localStorage.setItem("intellio_current_user", email);
-    if (onAuthSuccess) onAuthSuccess(email);
     setLoading(false);
   };
 
