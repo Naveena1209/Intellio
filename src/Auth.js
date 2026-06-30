@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "./supabase";
+
 import "./Auth.css";
 
 export default function Auth() {
@@ -16,28 +16,7 @@ export default function Auth() {
     setError("");
     setMessage("");
 
-    try {
-      // ✅ Debug — check what URL supabase is using
-      console.log("Supabase URL:", supabase.supabaseUrl);
 
-      if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        console.log("Login response:", data, error);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        console.log("Signup response:", data, error);
-        if (error) throw error;
-        setMessage("Check your email to confirm your account!");
-      }
-    } catch (err) {
-      console.error("Auth error:", err);
-      // Show exact error on screen for mobile debugging
-      setError(err.message);
-    }
-
-    setLoading(false);
-  };
 
   return (
     <div className="auth-wrapper">
