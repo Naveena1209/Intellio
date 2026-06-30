@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./Auth.css";
-export default function Auth({ onAuthSuccess }) {
+export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
