@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import "./App.css";
 import ReactMarkdown from "react-markdown";
 import Auth from "./Auth";
-import { supabase } from "./supabase";
 
 const getTime = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -32,6 +31,22 @@ const SEARCH_KEYWORDS = [
 
 const BACKEND_URL = "https://naveenasenthil-intellio.hf.space";
 
+// ── localStorage helpers (replaces Supabase 'chats' table) ──
+const getHistoryKey = (uid) => `intellio_chats_${uid}`;
+
+const loadHistoryFromStorage = (uid) => {
+  try {
+    const raw = localStorage.getItem(getHistoryKey(uid));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveHistoryToStorage = (uid, history) => {
+  localStorage.setItem(getHistoryKey(uid), JSON.stringify(history));
+};
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -55,25 +70,19 @@ export default function App() {
   const recognitionRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const loadHistory = useCallback(async (uid) => {
-    const { data, error } = await supabase
-      .from("chats").select("*").eq("uid", uid)
-      .order("created_at", { ascending: false });
-    if (error) console.error("Load history error:", error);
-    else setChatHistory(data || []);
+  const loadHistory = useCallback((uid) => {
+    setChatHistory(loadHistoryFromStorage(uid));
   }, []);
 
+  // ── Check localStorage for an existing "session" on load ──
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setAuthReady(true);
-      if (session?.user) loadHistory(session.user.id);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) loadHistory(session.user.id);
-    });
-    return () => subscription.unsubscribe();
+    const savedEmail = localStorage.getItem("intellio_current_user");
+    if (savedEmail) {
+      const fakeUser = { id: savedEmail, email: savedEmail };
+      setUser(fakeUser);
+      loadHistory(fakeUser.id);
+    }
+    setAuthReady(true);
   }, [loadHistory]);
 
   useEffect(() => {
@@ -85,21 +94,29 @@ export default function App() {
     setTimeout(() => setToast(""), 2500);
   };
 
-  const saveChat = useCallback(async (msgs) => {
+  const saveChat = useCallback((msgs) => {
     if (!user || msgs.length === 0) return;
-    const { data, error } = await supabase.from("chats").insert({
-      uid: user.id,
+    const newEntry = {
+      id: Date.now().toString(),
       title: msgs[0]?.text?.slice(0, 40) || "New Chat",
-      date: getDate(), messages: msgs, created_at: Date.now(),
-    }).select();
-    if (error) console.error("Save error:", error);
-    else if (data) setChatHistory((prev) => [data[0], ...prev]);
+      date: getDate(),
+      messages: msgs,
+      created_at: Date.now(),
+    };
+    setChatHistory((prev) => {
+      const updated = [newEntry, ...prev];
+      saveHistoryToStorage(user.id, updated);
+      return updated;
+    });
   }, [user]);
 
-  const deleteHistory = async (id, e) => {
+  const deleteHistory = (id, e) => {
     e.stopPropagation();
-    await supabase.from("chats").delete().eq("id", id);
-    setChatHistory((prev) => prev.filter((c) => c.id !== id));
+    setChatHistory((prev) => {
+      const updated = prev.filter((c) => c.id !== id);
+      saveHistoryToStorage(user.id, updated);
+      return updated;
+    });
     showToast("Deleted!");
   };
 
@@ -108,8 +125,8 @@ export default function App() {
     setSidebarOpen(false);
   };
 
-  const clearChat = async () => {
-    if (messages.length > 0) await saveChat(messages);
+  const clearChat = () => {
+    if (messages.length > 0) saveChat(messages);
     setMessages([]);
     setSidebarOpen(false);
     showToast("Chat cleared & saved!");
@@ -303,9 +320,18 @@ export default function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  const handleSignOut = () => {
+    localStorage.removeItem("intellio_current_user");
+    setUser(null);
+    setMessages([]);
+    setChatHistory([]);
     showToast("Signed out!");
+  };
+
+  const handleAuthSuccess = (email) => {
+    const fakeUser = { id: email, email };
+    setUser(fakeUser);
+    loadHistory(fakeUser.id);
   };
 
   if (!authReady) return (
@@ -314,7 +340,7 @@ export default function App() {
     </div>
   );
 
-  if (!user) return <Auth />;
+  if (!user) return <Auth onAuthSuccess={handleAuthSuccess} />;
 
   return (
     <div className={`app ${darkMode ? "dark" : ""}`}>
@@ -413,10 +439,6 @@ export default function App() {
                 <button key={s} className="suggestion-chip" onClick={() => sendMessage(s)}>{s}</button>
               ))}
             </div>
-            {/* PDF upload button in empty state */}
-            {/* <button className="pdf-upload-chip" onClick={() => fileInputRef.current?.click()}>
-              📄 Upload PDF to chat
-            </button> */}
           </div>
         ) : (
           messages.map((msg, i) => (
