@@ -1,23 +1,21 @@
 import { useState } from "react";
 import "./Auth.css";
-export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+export default function Auth({ onAuthSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
   const handleSubmit = () => {
     setLoading(true);
     localStorage.setItem("intellio_current_user", email);
+    if (onAuthSuccess) onAuthSuccess(email);
     setLoading(false);
   };
-
   return (
     <div className="auth-wrapper">
       <div className="auth-card">
         <div className="auth-logo">✦</div>
         <h1 className="auth-title">Intellio AI</h1>
-        <p className="auth-subtitle">{isLogin ? "Welcome back!" : "Create your account"}</p>
+        <p className="auth-subtitle">Welcome back!</p>
         <div className="auth-field">
           <label>Email</label>
           <input
@@ -39,14 +37,8 @@ export default function Auth() {
           />
         </div>
         <button className="auth-btn" onClick={handleSubmit} disabled={loading}>
-          {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
+          {loading ? "Please wait..." : "Sign In"}
         </button>
-        <p className="auth-switch">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}
-          <span onClick={() => setIsLogin(!isLogin)}>
-            {isLogin ? " Sign Up" : " Sign In"}
-          </span>
-        </p>
       </div>
     </div>
   );
